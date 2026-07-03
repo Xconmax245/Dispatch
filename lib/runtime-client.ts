@@ -173,7 +173,7 @@ If a refund, replacement, or escalation is warranted, say so explicitly.`;
 
 export async function executeTicket(
   ticketText: string,
-  tier: "cheap" | "strong"
+  tier: "economy" | "precision"
 ): Promise<{ reply: string; headers: RuntimeHeaders }> {
   const { data, headers } = await btlFetch("/chat/completions", {
     model: "btl-2",
@@ -181,8 +181,8 @@ export async function executeTicket(
       { role: "system", content: EXECUTION_SYSTEM_PROMPT },
       { role: "user",   content: ticketText },
     ],
-    max_tokens:  tier === "strong" ? 500 : 150,
-    temperature: tier === "strong" ? 0.4 : 0.2,
+    max_tokens:  tier === "precision" ? 500 : 150,
+    temperature: tier === "precision" ? 0.4 : 0.2,
   });
 
   return { reply: data.choices?.[0]?.message?.content ?? "[no reply]", headers };
