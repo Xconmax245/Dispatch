@@ -60,10 +60,18 @@ function extractHeaders(headers: Headers): RuntimeHeaders {
   };
 }
 
+export interface ChatCompletionResponse {
+  choices?: {
+    message?: {
+      content?: string;
+    };
+  }[];
+}
+
 async function btlFetch(
   path: string,
   body: object
-): Promise<{ data: any; headers: RuntimeHeaders }> {
+): Promise<{ data: ChatCompletionResponse; headers: RuntimeHeaders }> {
   const key = requireKey();
 
   const res = await fetch(`https://api.badtheorylabs.com/v1${path}`, {

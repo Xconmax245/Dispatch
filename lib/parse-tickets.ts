@@ -96,10 +96,10 @@ function parseTicketArray(raw: string): Ticket[] {
 
   return arr
     .slice(0, 30)
-    .map((t: any, i: number): Ticket => ({
+    .map((t: { id?: string; channel?: string; customerType?: string; text?: string }, i: number): Ticket => ({
       id:           t.id || `T${String(i + 1).padStart(3, "0")}`,
-      channel:      ["dm", "email", "public_comment"].includes(t.channel) ? t.channel : "dm",
-      customerType: ["first_time", "repeat", "unknown"].includes(t.customerType) ? t.customerType : "unknown",
+      channel:      (t.channel === "dm" || t.channel === "email" || t.channel === "public_comment") ? t.channel : "dm",
+      customerType: (t.customerType === "first_time" || t.customerType === "repeat" || t.customerType === "unknown") ? t.customerType : "unknown",
       text:         String(t.text ?? "").trim(),
     }))
     .filter((t: Ticket) => t.text.length > 0);
@@ -120,7 +120,7 @@ export async function parseRawMessages(rawText: string): Promise<ParseResult> {
   try {
     const tickets = parseTicketArray(raw2);
     return { tickets, headers: headers2 };
-  } catch (e2) {
+  } catch {
     throw new Error(
       `Could not parse your input into structured messages after two attempts. ` +
       `Last model response: "${raw2.slice(0, 200)}". Try separating messages with blank lines.`

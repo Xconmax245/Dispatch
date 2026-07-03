@@ -127,7 +127,7 @@ function TicketCard({ t }: { t: ProcessedTicket }) {
       className="bg-[#34344A] border border-[#3E3E56] p-5 relative flex flex-col gap-4 hover:-translate-y-1 hover:border-[#F1EFE7]/30 transition-all"
     >
       <CornerMarks dark />
-      <p className="text-sm text-[#F1EFE7] font-bold leading-snug line-clamp-3 italic opacity-90 border-l-2 border-[#3E3E56] pl-3">"{t.ticket.text}"</p>
+      <p className="text-sm text-[#F1EFE7] font-bold leading-snug line-clamp-3 italic opacity-90 border-l-2 border-[#3E3E56] pl-3">&ldquo;{t.ticket.text}&rdquo;</p>
       
       <div className="flex items-center gap-3 flex-wrap">
         <PriorityBadge badge={t.classification.classificationBadge} />
@@ -175,7 +175,7 @@ function TicketCard({ t }: { t: ProcessedTicket }) {
         </div>
 
         <div className="text-xs text-[#F1EFE7] opacity-90 leading-relaxed bg-[#2C2C40] p-3 border border-[#3E3E56] italic mb-3">
-          "{t.policy.reason}"
+          &ldquo;{t.policy.reason}&rdquo;
         </div>
       </div>
 
@@ -263,7 +263,7 @@ export default function DispatchApp() {
               } else if (ev.type === "COMPLETE") {
                 setPhase("done");
               }
-            } catch (_) {}
+            } catch {}
           }
         }
       } catch (err) {

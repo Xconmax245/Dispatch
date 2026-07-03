@@ -84,13 +84,13 @@ export default function LandingPage() {
               <div className="border-l-2 border-[#26263A]/20 pl-6 relative">
                 <div className="absolute -left-2 top-0 w-4 h-4 bg-[#E5E3DB] border-2 border-[#26263A] rounded-full"></div>
                 <p>
-                  Treating every message the same is a waste of money on easy questions, and a huge liability on the hard ones. You either overpay for <span className="font-mono bg-white/50 px-1">"where is my package"</span>, or you risk angering an escalated customer with a cheap hallucination.
+                  Treating every message the same is a waste of money on easy questions, and a huge liability on the hard ones. You either overpay for <span className="font-mono bg-white/50 px-1">&ldquo;where is my package&rdquo;</span>, or you risk angering an escalated customer with a cheap hallucination.
                 </p>
               </div>
               <div className="border-l-2 border-[#2CE8A5] pl-6 relative">
                 <div className="absolute -left-2 top-0 w-4 h-4 bg-[#2CE8A5] border-2 border-[#E5E3DB] rounded-full shadow-[0_0_10px_rgba(44,232,165,0.5)]"></div>
                 <p>
-                  Powered by <strong className="font-bold">BTL Runtime</strong>, Dispatch uses live cost headers and smart routing to decouple the decision from the provider. It's proof over claims: you see exactly why a model was chosen, and exactly what you saved by not blindly defaulting to the most expensive tier.
+                  Powered by <strong className="font-bold">BTL Runtime</strong>, Dispatch uses live cost headers and smart routing to decouple the decision from the provider. It&apos;s proof over claims: you see exactly why a model was chosen, and exactly what you saved by not blindly defaulting to the most expensive tier.
                 </p>
               </div>
             </div>
@@ -118,7 +118,7 @@ export default function LandingPage() {
                   <div>
                     <div className="text-[9px] uppercase tracking-[0.16em] opacity-40 mb-2">Simulated Message</div>
                     <div className="text-xs font-bold leading-relaxed border-l-2 border-[#3E3E56] pl-3 opacity-90 italic">
-                      "My package never arrived and your support team is ignoring me."
+                      &ldquo;My package never arrived and your support team is ignoring me.&rdquo;
                     </div>
                   </div>
                   
@@ -260,7 +260,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto mt-24 pt-6 border-t border-[#3E3E56] flex flex-col md:flex-row justify-between items-center gap-6 font-mono relative z-10">
           <div className="text-[9px] uppercase tracking-[0.2em] opacity-30 text-center md:text-left flex items-center gap-3">
             <span>© {new Date().getFullYear()} Bad Theory Labs</span>
-            <span className="hidden md:inline">///</span>
+            <span className="hidden md:inline">{"///"}</span>
             <span className="hidden md:inline">All rights reserved.</span>
           </div>
           <div className="flex items-center gap-6 text-[9px] uppercase tracking-[0.2em] opacity-40">
