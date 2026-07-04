@@ -32,9 +32,14 @@ export default function RunPage() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col items-center justify-center px-8 py-12">
         
-        <h1 className="text-2xl mb-10 text-center" style={{ fontFamily: "'Zodiak', serif", color: "#26263A" }}>
-          What do you want Dispatch to triage?
-        </h1>
+        <div className="text-center max-w-xl mb-10">
+          <h1 className="text-2xl mb-3" style={{ fontFamily: "'Zodiak', serif", color: "#26263A" }}>
+            Triage Demo Client
+          </h1>
+          <p className="text-xs opacity-60 leading-relaxed">
+            This interactive interface acts as a demo client, sending structured payloads to the attachable <code className="font-mono bg-[#EDEBE3] px-1 font-bold">/api/intercept</code> middleware endpoint. Paste customer messages below to view the routing decisions.
+          </p>
+        </div>
 
         <div className="w-full max-w-2xl">
           {/* Capital Reference */}

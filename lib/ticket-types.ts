@@ -50,6 +50,8 @@ export interface ProcessedTicket {
     requestId: string;
   };
 
+  reply?: string;
+
   policyMetrics: {
     shadowPremiumCost: number;
     shadowCheapCost: number;

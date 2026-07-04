@@ -175,6 +175,76 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* 5.5. Attachable Middleware Integration */}
+        <section className="px-8 py-24 bg-[#F7F5ED] border-t border-[#D8D5C9]">
+          <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            
+            <div data-aos="fade-right">
+              <div className="w-12 h-1 bg-[#FF6FCF] mb-8"></div>
+              <h2 className="text-3xl md:text-4xl mb-6" style={{ fontFamily: "'Zodiak', serif" }}>
+                Connect Dispatch to your agent
+              </h2>
+              <p className="text-sm leading-relaxed opacity-85 mb-8">
+                Any bot, email handler, or AI agent that can make an HTTP request can attach Dispatch as a pre-reply triage step. 
+                Instead of routing every single request through high-cost, high-latency models, query the <code className="font-mono bg-white/60 px-1 border border-[#D8D5C9]">/api/intercept</code> endpoint first.
+              </p>
+              
+              <div className="flex gap-4">
+                <Link href="/run" className="px-8 py-3.5 text-xs font-bold uppercase tracking-[0.15em] transition-all hover:opacity-90 active:scale-95 bg-[#26263A] text-[#F1EFE7]">
+                  Try it in the sandbox →
+                </Link>
+              </div>
+            </div>
+
+            <div data-aos="fade-left" className="space-y-6">
+              {/* Request Code Block */}
+              <div className="bg-[#1E1E2C] border border-[#3E3E56] p-6 text-[#F1EFE7] rounded-sm relative font-mono text-[11px] shadow-2xl">
+                <CornerMarks dark />
+                <div className="text-[9px] uppercase tracking-[0.2em] mb-3 opacity-40 border-b border-[#3E3E56]/50 pb-2">
+                  Attachable Endpoint: POST /api/intercept
+                </div>
+                <pre className="overflow-x-auto text-[#2CE8A5] leading-relaxed">
+{`curl -X POST https://yourdomain.com/api/intercept \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "text": "My package never arrived...",
+    "mode": "execute"
+  }'`}
+                </pre>
+              </div>
+
+              {/* Response Code Block */}
+              <div className="bg-[#1E1E2C] border border-[#3E3E56] p-6 text-[#F1EFE7] rounded-sm relative font-mono text-[11px] shadow-2xl">
+                <CornerMarks dark />
+                <div className="text-[9px] uppercase tracking-[0.2em] mb-3 opacity-40 border-b border-[#3E3E56]/50 pb-2">
+                  Response Payload
+                </div>
+                <pre className="overflow-x-auto text-[#FF6FCF] leading-relaxed">
+{`{
+  "tier": "precision",
+  "reason": "Refund Risk justified precision inference.",
+  "scores": {
+    "riskScore": 0.87,
+    "complexity": 0.60,
+    "confidence": 0.90,
+    "businessValue": 0.20,
+    "signals": [{"name": "Refund risk", "confidence": "HIGH"}]
+  },
+  "evidence": {
+    "cacheTier": "edge",
+    "benchmarkCost": 0.1200,
+    "customerCharge": 0.0450,
+    "saved": 0.0750
+  },
+  "reply": "We apologize for the delay. We are reviewing..."
+}`}
+                </pre>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
         {/* 6. Final CTA */}
         <section className="px-8 py-32 text-center bg-[#26263A] text-[#F1EFE7]">
           <h2 data-aos="zoom-in" className="text-4xl md:text-5xl mb-8" style={{ fontFamily: "'Zodiak', serif" }}>

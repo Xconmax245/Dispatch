@@ -1,13 +1,10 @@
 import { NextRequest } from "next/server";
 import { parseRawMessages } from "@/lib/parse-tickets";
 import {
-  triageTicket,
-  executeTicket,
   getQuote,
-  InsufficientCreditsError,
   MissingKeyError,
 } from "@/lib/runtime-client";
-import { decideTier, calculateShadowCosts } from "@/lib/policy";
+import { calculateShadowCosts } from "@/lib/policy";
 import type { ProcessedTicket } from "@/lib/ticket-types";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +14,10 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const startingCapital = parseFloat(body.startingCapital) || 0.3;
   const rawText: string = body.rawText ?? "";
+
+  const host = req.headers.get("host") || "localhost:3000";
+  const protocol = req.nextUrl.protocol || "http:";
+  const interceptUrl = `${protocol}//${host}/api/intercept`;
 
   const encoder = new TextEncoder();
 
@@ -100,86 +101,69 @@ export async function POST(req: NextRequest) {
           }
 
           try {
-            // a. Triage
-            const { scores, headers: triageHeaders } = await triageTicket(ticket.text);
-            remaining = Math.max(0, remaining - triageHeaders.customerCharge);
-            let actualSpend = triageHeaders.customerCharge;
+            // Call intercept API internally
+            const interceptRes = await fetch(interceptUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                text: ticket.text,
+                channel: ticket.channel,
+                mode: "execute",
+                remainingCapital: remaining,
+                ticketsLeft
+              })
+            });
 
-            // b. Policy
-            const policyOutput = decideTier(scores, { remaining, ticketsLeft });
-            const shadowCosts = calculateShadowCosts(scores);
+            if (!interceptRes.ok) {
+              const errBody = await interceptRes.json().catch(() => ({}));
+              const errMsg = errBody.error || `HTTP ${interceptRes.status}`;
+              if (interceptRes.status === 401 || errMsg.includes("GATEWAY_API_KEY")) {
+                throw new MissingKeyError();
+              }
+              throw new Error(errMsg);
+            }
 
-            // c. Execute
-            let runtime: ProcessedTicket["runtime"];
-            if (policyOutput.decision !== "human_review") {
-              const { headers: execHeaders } = await executeTicket(ticket.text, policyOutput.decision);
-              remaining = Math.max(0, remaining - execHeaders.customerCharge);
-              actualSpend += execHeaders.customerCharge;
-              
-              runtime = {
-                model: "BTL Router", 
-                provider: "BTL-2", 
-                gatewayMode: "marketplace",
-                cacheTier: execHeaders.cacheTier,
-                benchmarkCost: execHeaders.benchmarkCost,
-                customerCharge: execHeaders.customerCharge,
-                runtimeSaved: execHeaders.saved,
-                requestId: execHeaders.requestId
-              };
+            const resData = await interceptRes.json();
+
+            // Set forcedHumanReview to true if credits are exhausted / 402 happened
+            if (resData.reason && resData.reason.includes("402")) {
+              forcedHumanReview = true;
             }
 
             const pt: ProcessedTicket = {
               ticket,
-              classification: {
-                riskScore: scores.riskScore,
-                complexity: scores.complexity,
-                confidence: scores.confidence,
-                businessValue: scores.businessValue,
-                signals: scores.signals,
-                dominantFactor: scores.dominantFactor,
-                classificationBadge: scores.classification
-              },
+              classification: resData.scores,
               policy: {
-                decision: policyOutput.decision,
-                reason: policyOutput.reason,
-                considered: policyOutput.considered,
-                decisionPath: policyOutput.decisionPath
+                decision: resData.tier,
+                reason: resData.reason,
+                considered: resData.policy.considered,
+                decisionPath: resData.policy.decisionPath
               },
-              runtime,
+              runtime: resData.tier === "human_review" ? undefined : {
+                model: "BTL Router",
+                provider: "BTL-2",
+                gatewayMode: "marketplace",
+                cacheTier: resData.evidence.cacheTier,
+                benchmarkCost: resData.evidence.benchmarkCost,
+                customerCharge: resData.evidence.customerCharge,
+                runtimeSaved: resData.evidence.saved,
+                requestId: resData.evidence.requestId
+              },
+              reply: resData.reply,
               policyMetrics: {
-                shadowPremiumCost: shadowCosts.shadowCostAlwaysStrong,
-                shadowCheapCost: shadowCosts.shadowCostAlwaysCheap,
-                actualSpend,
-                policySavings: Math.max(0, shadowCosts.shadowCostAlwaysStrong - actualSpend),
-                runningCapitalRemaining: remaining
+                shadowPremiumCost: resData.shadowCosts.shadowCostAlwaysStrong,
+                shadowCheapCost: resData.shadowCosts.shadowCostAlwaysCheap,
+                actualSpend: resData.actualSpend,
+                policySavings: Math.max(0, resData.shadowCosts.shadowCostAlwaysStrong - resData.actualSpend),
+                runningCapitalRemaining: Math.max(0, remaining - resData.actualSpend)
               }
             };
 
+            remaining = Math.max(0, remaining - resData.actualSpend);
             send({ type: "TICKET_PROCESSED", ticket: pt });
 
           } catch (err) {
-            if (err instanceof InsufficientCreditsError) {
-              forcedHumanReview = true;
-              const shadowCosts = calculateShadowCosts({ riskScore: 0.5, complexity: 0.5, confidence: 0.5, businessValue: 0.5, classification: "Human Review", dominantFactor: "Insufficient credits", signals: [] });
-              const pt: ProcessedTicket = {
-                ticket,
-                classification: { riskScore: 0.5, complexity: 0.5, confidence: 0.5, businessValue: 0.5, signals: [], dominantFactor: "Insufficient credits", classificationBadge: "Human Review" },
-                policy: {
-                  decision: "human_review",
-                  reason: "402 — insufficient credits, downgraded to human review",
-                  considered: { economy: "rejected", precision: "rejected", humanReview: "selected" },
-                  decisionPath: ["Insufficient Credits", "Human Review"]
-                },
-                policyMetrics: {
-                  shadowPremiumCost: shadowCosts.shadowCostAlwaysStrong,
-                  shadowCheapCost: shadowCosts.shadowCostAlwaysCheap,
-                  actualSpend: 0,
-                  policySavings: shadowCosts.shadowCostAlwaysStrong,
-                  runningCapitalRemaining: remaining
-                }
-              };
-              send({ type: "TICKET_PROCESSED", ticket: pt });
-            } else if (err instanceof MissingKeyError) {
+            if (err instanceof MissingKeyError) {
               send({ type: "ERROR", message: err.message });
               controller.close();
               return;
