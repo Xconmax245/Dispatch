@@ -26,18 +26,21 @@ export default function RunPage() {
         <Link href="/" className="text-sm font-bold uppercase tracking-[0.25em] hover:opacity-70 transition-opacity" style={{ color: "#26263A" }}>
           Dispatch
         </Link>
-        <div className="text-[10px] uppercase tracking-[0.18em] opacity-50" style={{ color: "#26263A" }}>BTL Runtime demo</div>
+        <nav className="flex items-center gap-6 text-[10px] uppercase tracking-[0.18em]" style={{ color: "#26263A" }}>
+          <Link href="/docs" className="opacity-50 hover:opacity-100 transition-opacity">Docs</Link>
+          <span className="opacity-30">BTL Runtime demo</span>
+        </nav>
       </header>
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col items-center justify-center px-8 py-12">
-        
+
         <div className="text-center max-w-xl mb-10">
           <h1 className="text-2xl mb-3" style={{ fontFamily: "'Zodiak', serif", color: "#26263A" }}>
-            Triage Demo Client
+            What do you want Dispatch to triage?
           </h1>
           <p className="text-xs opacity-60 leading-relaxed">
-            This interactive interface acts as a demo client, sending structured payloads to the attachable <code className="font-mono bg-[#EDEBE3] px-1 font-bold">/api/intercept</code> middleware endpoint. Paste customer messages below to view the routing decisions.
+            Paste customer messages below — raw DM transcripts, support emails, WhatsApp exports. Dispatch structures them into individual tickets and routes each one based on real risk.
           </p>
         </div>
 
@@ -56,17 +59,17 @@ export default function RunPage() {
 
           <div className="relative group">
             <CornerMarks />
-            
-            <div 
-              className="absolute top-0 left-0 right-0 h-10 border-b flex items-center px-5 justify-between pointer-events-none transition-colors duration-300" 
-              style={{ 
+
+            <div
+              className="absolute top-0 left-0 right-0 h-10 border-b flex items-center px-5 justify-between pointer-events-none transition-colors duration-300"
+              style={{
                 backgroundColor: hasContent ? "#E6E4D9" : "#EDEBE3",
-                borderColor: hasContent ? "#26263A" : "#D8D5C9" 
+                borderColor: hasContent ? "#26263A" : "#D8D5C9",
               }}
             >
               <div className="flex items-center gap-3">
-                <span 
-                  className={`w-2 h-2 rounded-full ${hasContent ? "animate-pulse" : ""}`} 
+                <span
+                  className={`w-2 h-2 rounded-full ${hasContent ? "animate-pulse" : ""}`}
                   style={{ backgroundColor: hasContent ? "#2CE8A5" : "#FF6FCF" }}
                 />
                 <span className="text-[10px] uppercase tracking-[0.2em] font-bold" style={{ color: "#26263A", opacity: 0.6 }}>
@@ -101,9 +104,23 @@ export default function RunPage() {
           >
             Run Dispatch →
           </button>
-          
-          <div className="text-center mt-6">
-            <Link href="/" className="text-[10px] uppercase tracking-[0.18em] opacity-40 hover:opacity-80 transition-opacity" style={{ color: "#26263A" }}>
+
+          {/* Cross-link to Telegram bot */}
+          <div className="text-center mt-5 text-[10px] uppercase tracking-[0.18em] opacity-50" style={{ color: "#26263A" }}>
+            Or send a test message to our Telegram bot instead{" "}
+            <a
+              href="https://t.me/dispatch_demobot"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:opacity-100 transition-opacity"
+              style={{ color: "#26263A" }}
+            >
+              → @dispatch_demobot
+            </a>
+          </div>
+
+          <div className="text-center mt-4">
+            <Link href="/" className="text-[10px] uppercase tracking-[0.18em] opacity-30 hover:opacity-60 transition-opacity" style={{ color: "#26263A" }}>
               ← Back to landing page
             </Link>
           </div>

@@ -154,7 +154,7 @@ export async function POST(req: NextRequest) {
                 shadowPremiumCost: resData.shadowCosts.shadowCostAlwaysStrong,
                 shadowCheapCost: resData.shadowCosts.shadowCostAlwaysCheap,
                 actualSpend: resData.actualSpend,
-                policySavings: Math.max(0, resData.shadowCosts.shadowCostAlwaysStrong - resData.actualSpend),
+                policySavings: resData.shadowCosts.shadowCostAlwaysStrong - resData.actualSpend,
                 runningCapitalRemaining: Math.max(0, remaining - resData.actualSpend)
               }
             };

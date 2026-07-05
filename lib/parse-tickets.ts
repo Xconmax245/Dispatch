@@ -48,12 +48,15 @@ Rules:
 Return ONLY a valid JSON array. Start with [ and end with ]. No markdown. No code fences. No prose.`;
 
 function extractHeaders(headers: Headers) {
+  const benchmarkCost = parseFloat(headers.get("x-btl-benchmark-cost") ?? "0");
+  const customerCharge = parseFloat(headers.get("x-btl-customer-charge") ?? "0");
+
   return {
     requestId:     headers.get("x-btl-request-id")      ?? "",
     cacheTier:     headers.get("x-btl-cache-tier")       ?? "none",
-    benchmarkCost: parseFloat(headers.get("x-btl-benchmark-cost")   ?? "0"),
-    customerCharge:parseFloat(headers.get("x-btl-customer-charge")  ?? "0"),
-    saved:         parseFloat(headers.get("x-btl-saved")            ?? "0"),
+    benchmarkCost,
+    customerCharge,
+    saved:         benchmarkCost - customerCharge,
   };
 }
 
@@ -86,7 +89,17 @@ async function callParse(text: string, forceJson = false): Promise<{ raw: string
 
   const data = await res.json();
   const raw  = data.choices?.[0]?.message?.content ?? "";
-  return { raw, headers: extractHeaders(res.headers) };
+  const headers = extractHeaders(res.headers);
+
+  if (!headers.requestId && data.id) {
+    if (data.id.startsWith("chatcmpl_")) {
+      headers.requestId = "req_" + data.id.slice(9, 17);
+    } else {
+      headers.requestId = data.id;
+    }
+  }
+
+  return { raw, headers };
 }
 
 function parseTicketArray(raw: string): Ticket[] {

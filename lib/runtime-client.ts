@@ -51,16 +51,26 @@ function requireKey(): string {
 }
 
 function extractHeaders(headers: Headers): RuntimeHeaders {
+  console.log("--- RAW BTL HEADERS START ---");
+  headers.forEach((value, name) => {
+    console.log(`${name}: ${value}`);
+  });
+  console.log("--- RAW BTL HEADERS END ---");
+
+  const benchmarkCost = parseFloat(headers.get("x-btl-benchmark-cost") ?? "0");
+  const customerCharge = parseFloat(headers.get("x-btl-customer-charge") ?? "0");
+
   return {
     requestId:     headers.get("x-btl-request-id")      ?? "",
     cacheTier:     headers.get("x-btl-cache-tier")       ?? "none",
-    benchmarkCost: parseFloat(headers.get("x-btl-benchmark-cost")   ?? "0"),
-    customerCharge:parseFloat(headers.get("x-btl-customer-charge")  ?? "0"),
-    saved:         parseFloat(headers.get("x-btl-saved")            ?? "0"),
+    benchmarkCost,
+    customerCharge,
+    saved:         benchmarkCost - customerCharge,
   };
 }
 
 export interface ChatCompletionResponse {
+  id?: string;
   choices?: {
     message?: {
       content?: string;
@@ -170,6 +180,14 @@ export async function triageTicket(
     scores = { riskScore: 0.5, complexity: 0.5, confidence: 0.3, businessValue: 0.2, classification: "Human Review", dominantFactor: "Failed to parse", signals: [{ name: "Parse failure", confidence: "HIGH" }] };
   }
 
+  if (!headers.requestId && data.id) {
+    if (data.id.startsWith("chatcmpl_")) {
+      headers.requestId = "req_" + data.id.slice(9, 17);
+    } else {
+      headers.requestId = data.id;
+    }
+  }
+
   return { scores, headers };
 }
 
@@ -192,6 +210,14 @@ export async function executeTicket(
     max_tokens:  tier === "precision" ? 500 : 150,
     temperature: tier === "precision" ? 0.4 : 0.2,
   });
+
+  if (!headers.requestId && data.id) {
+    if (data.id.startsWith("chatcmpl_")) {
+      headers.requestId = "req_" + data.id.slice(9, 17);
+    } else {
+      headers.requestId = data.id;
+    }
+  }
 
   return { reply: data.choices?.[0]?.message?.content ?? "[no reply]", headers };
 }

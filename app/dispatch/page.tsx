@@ -13,12 +13,16 @@ const STARTING_CAPITAL = 0.3;
 
 function EvidenceCard({ runtime }: { runtime?: ProcessedTicket["runtime"] }) {
   const [open, setOpen] = useState(false);
-  
+
   if (!runtime) {
     return (
-      <div className="w-full border border-[#3E3E56] py-2 text-[10px] uppercase tracking-[0.18em] text-[#FF6FCF]/50 text-center bg-[#2C2C40]">
-        Execution Skipped
-        <div className="text-[8px] opacity-70 mt-0.5 normal-case tracking-normal">Reason: Human review required before inference.</div>
+      <div className="w-full border-t border-[#3E3E56] pt-4 mt-2">
+        <div className="text-[9px] uppercase tracking-[0.2em] text-[#FF6FCF]/40 text-center">
+          Execution Skipped
+        </div>
+        <div className="text-[8px] opacity-50 mt-1 text-center text-[#F1EFE7] normal-case tracking-normal">
+          Human review required before inference.
+        </div>
       </div>
     );
   }
@@ -27,87 +31,203 @@ function EvidenceCard({ runtime }: { runtime?: ProcessedTicket["runtime"] }) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="w-full border border-[#3E3E56] py-2 text-[10px] uppercase tracking-[0.18em] text-[#D8D5C9] hover:bg-[#3E3E56]/30 transition-colors"
+        className="w-full border-t border-[#3E3E56] pt-3 mt-2 text-[9px] uppercase tracking-[0.18em] text-[#D8D5C9]/60 hover:text-[#D8D5C9] transition-colors text-left flex items-center gap-2"
       >
-        View Runtime Evidence →
+        <span className="opacity-40">›</span> View Runtime Evidence
       </button>
     );
   }
-  
-  const savedPct = runtime.benchmarkCost > 0 ? ((runtime.runtimeSaved / runtime.benchmarkCost) * 100).toFixed(1) : "0.0";
-  
-  const rows: [string, string][] = [
-    ["Provider",     `${runtime.provider} (${runtime.model})`],
-    ["Gateway Mode", runtime.gatewayMode],
-    ["Cache",        runtime.cacheTier || "none"],
-    ["Benchmark",    `$${(runtime.benchmarkCost  || 0).toFixed(4)}`],
-    ["Charged",      `$${(runtime.customerCharge || 0).toFixed(4)}`],
-    ["Saved",        `${savedPct}%`],
-    ["Request ID",   (runtime.requestId || "—").slice(-14)],
+
+  const savedPct =
+    runtime.benchmarkCost > 0
+      ? ((runtime.runtimeSaved / runtime.benchmarkCost) * 100).toFixed(1)
+      : "0.0";
+
+  const rows: [string, string, boolean][] = [
+    ["Provider",     `${runtime.provider} (${runtime.model})`,            false],
+    ["Gateway Mode", runtime.gatewayMode,                                  false],
+    ["Cache",        runtime.cacheTier || "none",                          true],
+    ["Benchmark",    `$${(runtime.benchmarkCost  || 0).toFixed(4)}`,      false],
+    ["Charged",      `$${(runtime.customerCharge || 0).toFixed(4)}`,      true],
+    ["Saved",        `${savedPct}%`,                                       true],
+    ["Request ID",   (runtime.requestId || "—").slice(-14),               false],
   ];
 
   return (
-    <div className="border border-[#3E3E56] bg-[#1E1E2C] p-4 text-[10px] uppercase tracking-[0.12em] font-mono space-y-1.5 shadow-lg relative z-20">
-      <div className="opacity-40 mb-3 text-[9px] uppercase tracking-widest border-b border-[#3E3E56]/50 pb-2">Runtime Execution</div>
-      {rows.map(([k, v]) => (
-        <div key={k} className="flex justify-between py-0.5">
-          <span className="opacity-50">{k}</span>
-          <span className={["Cache", "Charged", "Saved"].includes(k) ? "text-[#2CE8A5] font-bold" : "text-[#F1EFE7]"}>{v}</span>
-        </div>
-      ))}
-      <button onClick={() => setOpen(false)} className="w-full mt-3 pt-3 border-t border-[#3E3E56]/50 opacity-50 hover:opacity-100 transition-opacity text-[#F1EFE7]">
+    <div className="border-t border-[#3E3E56] pt-4 mt-2">
+      {/* Receipt header */}
+      <div className="flex items-center gap-3 mb-3">
+        <div className="flex-1 h-px bg-[#3E3E56]" />
+        <span className="text-[9px] uppercase tracking-[0.2em] opacity-40 text-[#F1EFE7] whitespace-nowrap">
+          Verified via BTL Runtime
+        </span>
+        <div className="flex-1 h-px bg-[#3E3E56]" />
+      </div>
+
+      {/* Receipt rows */}
+      <div className="font-mono text-[10px]">
+        {rows.map(([k, v, highlight], i) => (
+          <div
+            key={k}
+            className={`flex justify-between items-center py-1.5 ${
+              i < rows.length - 1 ? "border-b border-[#3E3E56]/40" : ""
+            }`}
+          >
+            <span className="uppercase tracking-[0.14em] opacity-40 text-[#F1EFE7]">{k}</span>
+            <span
+              className={
+                highlight
+                  ? "text-[#2CE8A5] font-bold"
+                  : "text-[#F1EFE7] opacity-80"
+              }
+            >
+              {v}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <button
+        onClick={() => setOpen(false)}
+        className="w-full mt-3 text-[9px] uppercase tracking-[0.18em] opacity-30 hover:opacity-70 transition-opacity text-[#F1EFE7] text-right"
+      >
         Close ↑
       </button>
     </div>
   );
 }
 
-// ─── Priority badge ───────────────────────────────────────────────────────────
+// ─── Classification chip ───────────────────────────────────────────────────────
 
-function PriorityBadge({ badge }: { badge: string }) {
+function ClassificationChip({ badge }: { badge: string }) {
   const text = (badge || "Routine Inquiry").toLowerCase();
-  let color = "bg-[#3E3E56] text-[#D8D5C9]";
-  
-  if (text.includes("human") || text.includes("review")) color = "bg-[#FF6FCF] text-[#26263A]";
-  else if (text.includes("reputation") || text.includes("chargeback") || text.includes("risk")) color = "bg-red-400 text-[#26263A]";
-  else if (text.includes("time") || text.includes("sensitive")) color = "bg-amber-400 text-[#26263A]";
-  else color = "bg-[#2CE8A5] text-[#26263A]";
 
-  return <span className={`px-2 py-1 text-[9px] font-bold uppercase tracking-[0.15em] ${color}`}>{badge || "Routine Inquiry"}</span>;
+  let bgColor = "bg-[#2CE8A5]/10";
+  let textColor = "text-[#2CE8A5]";
+  let borderColor = "border-[#2CE8A5]/30";
+  let icon = "·";
+
+  if (text.includes("human") || text.includes("review")) {
+    bgColor = "bg-[#FF6FCF]/10"; textColor = "text-[#FF6FCF]"; borderColor = "border-[#FF6FCF]/30"; icon = "▲";
+  } else if (text.includes("reputation") || text.includes("chargeback")) {
+    bgColor = "bg-red-500/10"; textColor = "text-red-400"; borderColor = "border-red-500/30"; icon = "▲";
+  } else if (text.includes("refund") || text.includes("risk")) {
+    bgColor = "bg-amber-400/10"; textColor = "text-amber-400"; borderColor = "border-amber-400/30"; icon = "›";
+  } else if (text.includes("time") || text.includes("sensitive")) {
+    bgColor = "bg-amber-400/10"; textColor = "text-amber-400"; borderColor = "border-amber-400/30"; icon = "›";
+  }
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.14em] border ${bgColor} ${textColor} ${borderColor}`}
+      style={{ borderRadius: "2px" }}
+    >
+      <span className="opacity-70">{icon}</span>
+      {badge || "Routine Inquiry"}
+    </span>
+  );
 }
 
-// ─── Cost comparison ──────────────────────────────────────────────────────────
+// ─── Tier chip ────────────────────────────────────────────────────────────────
 
-function CostComparison({ premiumCost, actualCost, policySavings }: { premiumCost: number; actualCost: number; policySavings: number }) {
+function TierChip({ decision }: { decision: string }) {
+  const isHuman   = decision === "human_review";
+  const isEconomy = decision === "economy";
+
+  const label      = isHuman ? "Human Review" : isEconomy ? "Economy" : "Precision";
+  const icon       = isHuman ? "▲" : isEconomy ? "·" : "›";
+  const textColor  = isHuman ? "text-[#FF6FCF]" : isEconomy ? "text-[#2CE8A5]" : "text-[#FF6FCF]";
+  const borderColor = isHuman ? "border-[#FF6FCF]/30" : isEconomy ? "border-[#2CE8A5]/30" : "border-[#FF6FCF]/30";
+  const bgColor    = isHuman ? "bg-[#FF6FCF]/10" : isEconomy ? "bg-[#2CE8A5]/10" : "bg-[#FF6FCF]/10";
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.14em] border ${bgColor} ${textColor} ${borderColor}`}
+      style={{ borderRadius: "2px" }}
+    >
+      <span className="opacity-70">{icon}</span>
+      {label}
+    </span>
+  );
+}
+
+// ─── Cost comparison with line-number diff treatment ──────────────────────────
+
+function CostComparison({
+  premiumCost,
+  actualCost,
+  policySavings,
+}: {
+  premiumCost: number;
+  actualCost: number;
+  policySavings: number;
+}) {
   const MAX = Math.max(premiumCost, 0.001);
   const actualPct = Math.max(3, (actualCost / MAX) * 100);
   const savedPct  = premiumCost > 0 ? Math.round((policySavings / premiumCost) * 100) : 0;
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex gap-3 items-center">
-        <div className="flex-1 flex flex-col gap-2">
-          <div>
-            <div className="text-[9px] uppercase tracking-[0.16em] opacity-40 text-[#F1EFE7] mb-1">If always premium</div>
-            <div className="h-2.5 bg-[#2C2C40] border border-[#3E3E56] relative overflow-hidden">
-              <div className="absolute inset-y-0 left-0 right-0 bg-[#FF6FCF]/45 border-r border-[#FF6FCF] flex items-center px-1.5" />
-            </div>
+    <div className="flex flex-col gap-2.5">
+      {/* Row 01 */}
+      <div className="flex items-center gap-2">
+        <span className="font-mono text-[9px] text-[#F1EFE7] opacity-20 w-5 text-right select-none">01</span>
+        <div className="flex-1 flex flex-col gap-1">
+          <div className="text-[9px] uppercase tracking-[0.16em] opacity-40 text-[#F1EFE7]">
+            If always premium
           </div>
-          <div>
-            <div className="text-[9px] uppercase tracking-[0.16em] opacity-40 text-[#F1EFE7] mb-1">What Dispatch spent</div>
-            <div className="h-2.5 bg-[#2C2C40] border border-[#3E3E56] relative overflow-hidden">
+          <div className="flex items-center gap-2">
+            <div className="flex-1 h-2 bg-[#2C2C40] relative overflow-hidden" style={{ borderRadius: "1px" }}>
+              {/* Full-width bar */}
               <div
-                className="absolute inset-y-0 left-0 bg-[#2CE8A5]/40 border-r border-[#2CE8A5] flex items-center px-1.5 transition-all duration-700 ease-out"
-                style={{ width: `${actualPct}%` }}
+                className="absolute inset-y-0 left-0 right-0 bg-[#FF6FCF]/35"
+                style={{ boxShadow: "inset 1px 0 0 rgba(255,111,207,0.5)" }}
               />
             </div>
+            <span className="font-mono text-[9px] text-[#F1EFE7] opacity-50 w-14 text-right">
+              ${premiumCost.toFixed(4)}
+            </span>
           </div>
         </div>
       </div>
-      <div className="text-[10px] uppercase tracking-[0.14em] text-[#2CE8A5] flex items-baseline gap-2 mt-1">
-        <span className="opacity-70">Policy Savings</span>
-        <span className="font-bold text-sm">${policySavings > 0 ? policySavings.toFixed(4) : "0.0000"}</span>
-        <span className="opacity-50">({savedPct}%)</span>
+
+      {/* Row 02 */}
+      <div className="flex items-center gap-2">
+        <span className="font-mono text-[9px] text-[#F1EFE7] opacity-20 w-5 text-right select-none">02</span>
+        <div className="flex-1 flex flex-col gap-1">
+          <div className="text-[9px] uppercase tracking-[0.16em] opacity-40 text-[#F1EFE7]">
+            What Dispatch spent
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex-1 h-2 bg-[#2C2C40] relative overflow-hidden" style={{ borderRadius: "1px" }}>
+              <div
+                className="absolute inset-y-0 left-0 bg-[#2CE8A5]/40 transition-all duration-700 ease-out"
+                style={{
+                  width: `${actualPct}%`,
+                  boxShadow: "inset 1px 0 0 rgba(44,232,165,0.6)",
+                }}
+              />
+            </div>
+            <span className="font-mono text-[9px] text-[#2CE8A5] w-14 text-right">
+              ${actualCost.toFixed(4)}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Savings line */}
+      <div className="flex items-center gap-2 pt-1">
+        <span className="font-mono text-[9px] text-[#F1EFE7] opacity-20 w-5 text-right select-none">  </span>
+        <div className="flex-1 flex items-baseline gap-2">
+          <span className="text-[9px] uppercase tracking-[0.14em] text-[#F1EFE7] opacity-40">
+            Policy savings
+          </span>
+          <span className="font-mono text-xs font-bold text-[#2CE8A5]">
+            ${policySavings.toFixed(4)}
+          </span>
+          <span className="text-[9px] opacity-40 text-[#2CE8A5]">
+            ({savedPct}%)
+          </span>
+        </div>
       </div>
     </div>
   );
@@ -116,72 +236,95 @@ function CostComparison({ premiumCost, actualCost, policySavings }: { premiumCos
 // ─── Ticket card ──────────────────────────────────────────────────────────────
 
 function TicketCard({ t }: { t: ProcessedTicket }) {
-  const isHuman = t.policy.decision === "human_review";
-  const tierColor = isHuman ? "text-[#FF6FCF]/70" : t.policy.decision === "economy" ? "text-[#2CE8A5]" : "text-[#FF6FCF]";
-
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
-      className="bg-[#34344A] border border-[#3E3E56] p-5 relative flex flex-col gap-4 hover:-translate-y-1 hover:border-[#F1EFE7]/30 transition-all"
+      className="
+        bg-[#34344A] border border-[#3E3E56] p-6 relative flex flex-col gap-5
+        hover:-translate-y-0.5 hover:border-[#6E6E90]
+        transition-all duration-150
+      "
     >
       <CornerMarks dark />
-      <p className="text-sm text-[#F1EFE7] font-bold leading-snug line-clamp-3 italic opacity-90 border-l-2 border-[#3E3E56] pl-3">&ldquo;{t.ticket.text}&rdquo;</p>
-      
-      <div className="flex items-center gap-3 flex-wrap">
-        <PriorityBadge badge={t.classification.classificationBadge} />
-        <span className="ml-auto text-[9px] opacity-30 text-[#F1EFE7] uppercase tracking-wide">#{t.ticket.id}</span>
+
+      {/* Header: ticket text */}
+      <p className="text-sm text-[#F1EFE7] font-bold leading-snug line-clamp-3 italic opacity-90 border-l-2 border-[#3E3E56] pl-3">
+        &ldquo;{t.ticket.text}&rdquo;
+      </p>
+
+      {/* Chips row — 2px radius square chips only */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <ClassificationChip badge={t.classification.classificationBadge} />
+        <TierChip decision={t.policy.decision} />
+        <span className="ml-auto text-[9px] opacity-20 text-[#F1EFE7] uppercase tracking-wide font-mono">
+          #{t.ticket.id}
+        </span>
       </div>
 
-      <div className="flex justify-between items-center bg-[#2C2C40] p-2 border border-[#3E3E56]">
-        <div className="text-[9px] uppercase tracking-[0.14em] text-[#F1EFE7] opacity-60">Policy Confidence</div>
-        <div className="text-[12px] font-mono text-[#F1EFE7] font-bold">{(t.classification.confidence * 100).toFixed(0)}%</div>
-      </div>
-
-      <div className="border-t border-[#3E3E56] pt-3">
-        <div className="text-[9px] uppercase tracking-[0.14em] opacity-40 text-[#F1EFE7] mb-2">Signals</div>
-        <ul className="text-[10px] text-[#F1EFE7] space-y-1.5 opacity-80 pl-1 font-mono">
+      {/* Signals */}
+      <div>
+        <div className="text-[9px] uppercase tracking-[0.2em] opacity-40 text-[#F1EFE7] mb-2">
+          Signals
+        </div>
+        <ul className="text-[10px] text-[#F1EFE7] space-y-1 font-mono">
           {t.classification.signals?.map((s, idx) => {
-            const confColor = s.confidence === "HIGH" ? "text-[#FF6FCF]" : s.confidence === "MEDIUM" ? "text-amber-400" : "text-[#2CE8A5]";
+            const confColor =
+              s.confidence === "HIGH"
+                ? "text-[#FF6FCF]"
+                : s.confidence === "MEDIUM"
+                ? "text-amber-400"
+                : "text-[#2CE8A5]";
             return (
-              <li key={idx} className="flex justify-between items-center bg-[#2C2C40] p-1.5 border border-[#3E3E56]">
-                <span className="truncate">{s.name}</span>
-                <span className={`text-[8px] font-bold tracking-widest px-1 bg-[#1E1E2C] ${confColor}`}>{s.confidence}</span>
+              <li key={idx} className="flex justify-between items-center py-1 border-b border-[#3E3E56]/40 last:border-0">
+                <span className="truncate opacity-80">{s.name}</span>
+                <span className={`text-[8px] font-bold tracking-widest ${confColor} ml-2`}>
+                  {s.confidence}
+                </span>
               </li>
             );
           })}
         </ul>
       </div>
 
-      <CostComparison 
-        premiumCost={t.policyMetrics.shadowPremiumCost} 
-        actualCost={t.policyMetrics.actualSpend} 
+      {/* Cost comparison */}
+      <CostComparison
+        premiumCost={t.policyMetrics.shadowPremiumCost}
+        actualCost={t.policyMetrics.actualSpend}
         policySavings={t.policyMetrics.policySavings}
       />
-      
-      <div className="border-t border-[#3E3E56] pt-3">
-        <div className="flex items-center justify-between mb-3 text-[9px] uppercase tracking-[0.14em]">
-          <span className="opacity-40 text-[#F1EFE7]">Decision Path</span>
-        </div>
-        
-        <div className="flex flex-col gap-1 text-[9px] uppercase tracking-wider font-bold mb-4 opacity-70">
-          {t.policy.decisionPath.map((step, i) => (
-            <div key={i} className="flex gap-2 items-center">
-              {i > 0 && <span className="opacity-40 ml-1 mr-1">↓</span>}
-              <span className={i === t.policy.decisionPath.length - 1 ? tierColor : ""}>{step}</span>
-            </div>
-          ))}
-        </div>
 
-        <div className="text-xs text-[#F1EFE7] opacity-90 leading-relaxed bg-[#2C2C40] p-3 border border-[#3E3E56] italic mb-3">
+      {/* Decision path */}
+      <div>
+        <div className="text-[9px] uppercase tracking-[0.2em] opacity-40 text-[#F1EFE7] mb-2">
+          Decision Path
+        </div>
+        <div className="flex flex-col gap-1 font-mono text-[9px] uppercase tracking-wider mb-3">
+          {t.policy.decisionPath.map((step, i) => {
+            const isLast = i === t.policy.decisionPath.length - 1;
+            const stepColor = isLast
+              ? t.policy.decision === "human_review"
+                ? "text-[#FF6FCF]"
+                : t.policy.decision === "economy"
+                ? "text-[#2CE8A5]"
+                : "text-[#FF6FCF]"
+              : "text-[#F1EFE7] opacity-40";
+            return (
+              <div key={i} className="flex gap-2 items-center">
+                {i > 0 && <span className="opacity-20 ml-1">↓</span>}
+                <span className={`font-bold ${stepColor}`}>{step}</span>
+              </div>
+            );
+          })}
+        </div>
+        <div className="text-[11px] text-[#F1EFE7] opacity-75 leading-relaxed italic">
           &ldquo;{t.policy.reason}&rdquo;
         </div>
       </div>
 
-      <div className="mt-auto pt-2">
-        <EvidenceCard runtime={t.runtime} />
-      </div>
+      {/* Runtime evidence — receipt style, no surrounding box */}
+      <EvidenceCard runtime={t.runtime} />
     </motion.div>
   );
 }
@@ -194,31 +337,29 @@ export default function DispatchApp() {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>("init");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  
-  const [remaining, setRemaining]     = useState(STARTING_CAPITAL);
+
+  const [remaining, setRemaining]         = useState(STARTING_CAPITAL);
   const [predictedTotal, setPredictedTotal] = useState<number | null>(null);
-  const [ledger, setLedger]           = useState<ProcessedTicket[]>([]);
-  const [processed, setProcessed]     = useState(0);
-  const [totalTickets, setTotalTickets] = useState(0);
+  const [ledger, setLedger]               = useState<ProcessedTicket[]>([]);
+  const [processed, setProcessed]         = useState(0);
+  const [totalTickets, setTotalTickets]   = useState(0);
 
   const hasStartedRef = useRef(false);
 
   useEffect(() => {
-    // Only run once
     if (hasStartedRef.current) return;
     hasStartedRef.current = true;
 
     const rawText = sessionStorage.getItem("dispatch_input");
-    
+
     if (!rawText || rawText.trim().length === 0) {
       router.replace("/run");
       return;
     }
 
     sessionStorage.removeItem("dispatch_input");
-    
     setPhase("parsing");
-    
+
     const runStream = async () => {
       try {
         const res = await fetch("/api/run-batch", {
@@ -275,25 +416,21 @@ export default function DispatchApp() {
     runStream();
   }, [router, totalTickets]);
 
-  const actualSpend   = ledger.reduce((s, t) => s + t.policyMetrics.actualSpend, 0);
-  const totalStrong   = ledger.reduce((s, t) => s + t.policyMetrics.shadowPremiumCost, 0);
-  const totalCheap    = ledger.reduce((s, t) => s + t.policyMetrics.shadowCheapCost, 0);
-  const totalRandom   = ledger.reduce((s, t) => s + ((t.policyMetrics.shadowPremiumCost + t.policyMetrics.shadowCheapCost) / 2), 0);
-  
-  const savingsPct    = totalStrong > 0 ? ((totalStrong - actualSpend) / totalStrong) * 100 : 0;
-  
-  // High Risk Miss is any ticket that WAS handled by Premium/Human Review under Dispatch, but WOULD HAVE BEEN handled by Cheap under an Always-Cheap strategy.
-  const mishandled = ledger.filter((t) => t.policy.decision === "precision" || t.policy.decision === "human_review");
+  const actualSpend = ledger.reduce((s, t) => s + t.policyMetrics.actualSpend, 0);
+  const totalStrong = ledger.reduce((s, t) => s + t.policyMetrics.shadowPremiumCost, 0);
+  const totalCheap  = ledger.reduce((s, t) => s + t.policyMetrics.shadowCheapCost, 0);
+  const totalRandom = ledger.reduce((s, t) => s + ((t.policyMetrics.shadowPremiumCost + t.policyMetrics.shadowCheapCost) / 2), 0);
+
+  const savingsPct  = totalStrong > 0 ? ((totalStrong - actualSpend) / totalStrong) * 100 : 0;
+
+  const mishandled   = ledger.filter((t) => t.policy.decision === "precision" || t.policy.decision === "human_review");
   const humanReviews = ledger.filter((t) => t.policy.decision === "human_review").length;
-  
-  // Always Cheap misses ALL of these.
-  const cheapMisses = mishandled.length;
-  // Random misses ~50% of them.
+  const cheapMisses  = mishandled.length;
   const randomMisses = Math.ceil(mishandled.length / 2);
 
-  const capitalPct    = Math.max(0, (remaining / STARTING_CAPITAL) * 100);
-  const dialColor     = remaining > 0.18 ? "text-[#2CE8A5]" : remaining > 0.08 ? "text-amber-400" : "text-red-400";
-  const barColor      = remaining > 0.18 ? "bg-[#2CE8A5]" : remaining > 0.08 ? "bg-amber-400" : "bg-red-400";
+  const capitalPct = Math.max(0, (remaining / STARTING_CAPITAL) * 100);
+  const dialColor  = remaining > 0.18 ? "text-[#2CE8A5]" : remaining > 0.08 ? "text-amber-400" : "text-red-400";
+  const barColor   = remaining > 0.18 ? "bg-[#2CE8A5]" : remaining > 0.08 ? "bg-amber-400" : "bg-red-400";
 
   if (phase === "error") {
     return (
@@ -302,7 +439,10 @@ export default function DispatchApp() {
           <CornerMarks dark />
           <h2 className="text-xl text-red-400 mb-4 font-bold uppercase tracking-widest">Run Failed</h2>
           <p className="text-sm text-[#F1EFE7] opacity-80 mb-8">{errorMsg}</p>
-          <Link href="/run" className="px-6 py-2 bg-[#3E3E56] text-[#F1EFE7] text-xs font-bold uppercase tracking-wider hover:bg-[#2CE8A5] hover:text-[#26263A] transition-colors">
+          <Link
+            href="/run"
+            className="px-6 py-2 bg-[#3E3E56] text-[#F1EFE7] text-xs font-bold uppercase tracking-wider hover:bg-[#2CE8A5] hover:text-[#26263A] transition-colors"
+          >
             Try Again
           </Link>
         </div>
@@ -334,39 +474,54 @@ export default function DispatchApp() {
         className="sticky top-0 z-50 flex items-center justify-between px-6 py-2 border-b text-[11px] uppercase tracking-[0.14em]"
         style={{ backgroundColor: "#2C2C40", borderColor: "#3E3E56", color: "#F1EFE7" }}
       >
-        <Link
-          href="/"
-          className="opacity-60 hover:opacity-100 transition-opacity flex items-center gap-2"
-        >
+        <Link href="/" className="opacity-60 hover:opacity-100 transition-opacity flex items-center gap-2">
           ← Back to pitch
         </Link>
         <span className="font-bold hidden sm:inline" style={{ color: "#2CE8A5" }}>Dispatch</span>
         <span className="opacity-40">
-          {phase === "running" ? `${processed} / ${totalTickets} tickets` :
-           `${processed} done · $${actualSpend.toFixed(3)} spent`}
+          {phase === "running"
+            ? `${processed} / ${totalTickets} tickets`
+            : `${processed} done · $${actualSpend.toFixed(3)} spent`}
         </span>
       </div>
 
       <div className="flex-1">
         {/* Status strip */}
-        <div className="w-full text-[11px] font-bold uppercase tracking-[0.15em] py-1 text-center" style={{ backgroundColor: "#2CE8A5", color: "#26263A" }}>
+        <div
+          className="w-full text-[11px] font-bold uppercase tracking-[0.15em] py-1 text-center"
+          style={{ backgroundColor: "#2CE8A5", color: "#26263A" }}
+        >
           {phase === "running"
             ? `Processing · $${remaining.toFixed(3)} remaining · ${totalTickets - processed} left`
             : `Complete · $${actualSpend.toFixed(3)} spent · ${savingsPct.toFixed(0)}% saved vs always-premium`}
+        </div>
+
+        {/* Live data notice */}
+        <div
+          className="w-full text-center py-1.5 text-[9px] uppercase tracking-[0.2em] opacity-40 text-[#F1EFE7] border-b"
+          style={{ borderColor: "#3E3E56" }}
+        >
+          Every number below comes from a live BTL Runtime API call — nothing here is simulated.
         </div>
 
         {/* Capital dial */}
         <div className="border-b px-8 py-5 flex items-center gap-8" style={{ borderColor: "#3E3E56" }}>
           <div>
             <div className="text-[10px] uppercase tracking-[0.2em] mb-1 opacity-40 text-[#F1EFE7]">
-              Intelligence Budget <span className="opacity-60 ml-2 normal-case tracking-normal">({capitalPct.toFixed(1)}% remaining)</span>
+              Intelligence Budget{" "}
+              <span className="opacity-60 ml-2 normal-case tracking-normal">
+                ({capitalPct.toFixed(1)}% remaining)
+              </span>
             </div>
             <div className={`text-3xl ${dialColor} transition-colors duration-500`} style={{ fontFamily: "'Zodiak', serif" }}>
               ${Math.max(0, remaining).toFixed(4)}
             </div>
           </div>
           <div className="flex-1 h-1 overflow-hidden" style={{ backgroundColor: "#3E3E56" }}>
-            <div className={`h-full ${barColor} transition-all duration-500 ease-out`} style={{ width: `${capitalPct}%` }} />
+            <div
+              className={`h-full ${barColor} transition-all duration-500 ease-out`}
+              style={{ width: `${capitalPct}%` }}
+            />
           </div>
           <div className="text-right text-[10px] uppercase tracking-[0.14em] opacity-40 text-[#F1EFE7] hidden sm:block">
             {phase === "running" ? (
@@ -384,7 +539,9 @@ export default function DispatchApp() {
               <div>
                 <div className="text-[10px] uppercase tracking-[0.22em] opacity-40 text-[#F1EFE7] mb-1">Decision ledger</div>
                 <h2 className="text-3xl text-[#F1EFE7]" style={{ fontFamily: "'Zodiak', serif" }}>
-                  {phase === "done" ? `${ledger.length} Tickets Processed` : `Processing… ${processed} / ${totalTickets}`}
+                  {phase === "done"
+                    ? `${ledger.length} Tickets Processed`
+                    : `Processing… ${processed} / ${totalTickets}`}
                 </h2>
               </div>
             </div>
@@ -400,11 +557,17 @@ export default function DispatchApp() {
             )}
 
             {phase === "done" && (
-              <motion.div 
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1 }}
                 className="text-center mt-16"
               >
-                <a href="#benchmark" className="inline-block px-10 py-3 text-[12px] font-bold uppercase tracking-[0.15em] hover:opacity-90 transition-opacity active:scale-95" style={{ backgroundColor: "#FF6FCF", color: "#26263A" }}>
+                <a
+                  href="#benchmark"
+                  className="inline-block px-10 py-3 text-[12px] font-bold uppercase tracking-[0.15em] hover:opacity-90 transition-opacity active:scale-95"
+                  style={{ backgroundColor: "#FF6FCF", color: "#26263A" }}
+                >
                   See full benchmark →
                 </a>
               </motion.div>
@@ -417,7 +580,9 @@ export default function DispatchApp() {
           <div id="benchmark" className="border-t px-8 py-16" style={{ borderColor: "#3E3E56" }}>
             <div className="max-w-4xl mx-auto">
               <div className="text-[10px] uppercase tracking-[0.22em] opacity-40 text-[#F1EFE7] mb-1">Strategy comparison</div>
-              <h2 className="text-4xl text-[#F1EFE7] mb-10" style={{ fontFamily: "'Zodiak', serif" }}>Dispatch vs. Alternatives</h2>
+              <h2 className="text-4xl text-[#F1EFE7] mb-10" style={{ fontFamily: "'Zodiak', serif" }}>
+                Dispatch vs. Alternatives
+              </h2>
 
               <div className="flex flex-col lg:flex-row gap-12 items-start">
                 <div className="flex-1 space-y-3 w-full">
@@ -427,15 +592,20 @@ export default function DispatchApp() {
                       <div className="text-right">Cost</div>
                       <div className="text-center">High-Risk Misses</div>
                       <div className="text-center">Human Reviews</div>
-                      <div className="text-right">Estimated Quality</div>
+                      <div className="text-right">Est. Quality</div>
                     </div>
-                    {([
-                      ["Dispatch", actualSpend, 0, humanReviews, "⭐⭐⭐⭐☆", "text-[#2CE8A5]"],
-                      ["Always Premium", totalStrong, 0, 0, "⭐⭐⭐⭐⭐", "text-[#FF6FCF]"],
-                      ["Always Cheap", totalCheap, cheapMisses, 0, "⭐⭐⭐☆☆", "text-[#D8D5C9]"],
-                      ["Random", totalRandom, randomMisses, 0, "⭐⭐☆☆☆", "text-[#D8D5C9]"],
-                    ] as [string, number, number, number, string, string][]).map(([label, cost, misses, hr, quality, color]) => (
-                      <div key={label} className="grid grid-cols-5 p-4 items-center border-b border-[#3E3E56] last:border-0 hover:bg-[#34344A] transition-colors">
+                    {(
+                      [
+                        ["Dispatch",       actualSpend,  0,            humanReviews, "⭐⭐⭐⭐☆", "text-[#2CE8A5]"],
+                        ["Always Premium", totalStrong,  0,            0,            "⭐⭐⭐⭐⭐", "text-[#FF6FCF]"],
+                        ["Always Cheap",   totalCheap,   cheapMisses,  0,            "⭐⭐⭐☆☆",  "text-[#D8D5C9]"],
+                        ["Random",         totalRandom,  randomMisses, 0,            "⭐⭐☆☆☆",  "text-[#D8D5C9]"],
+                      ] as [string, number, number, number, string, string][]
+                    ).map(([label, cost, misses, hr, quality, color]) => (
+                      <div
+                        key={label}
+                        className="grid grid-cols-5 p-4 items-center border-b border-[#3E3E56] last:border-0 hover:bg-[#34344A] transition-colors"
+                      >
                         <div className={`font-bold ${color}`}>{label}</div>
                         <div className="font-mono text-right text-[#F1EFE7]">${cost.toFixed(3)}</div>
                         <div className="text-center font-mono text-[#F1EFE7]">{misses}</div>
@@ -448,20 +618,28 @@ export default function DispatchApp() {
 
                 <div className="w-full lg:w-64 border p-7 relative" style={{ borderColor: "#3E3E56", backgroundColor: "#34344A" }}>
                   <CornerMarks dark />
-                  <div className="text-[10px] uppercase tracking-[0.2em] opacity-50 text-[#F1EFE7] mb-1">Total savings</div>
-                  <div className="text-6xl text-[#2CE8A5] mb-1" style={{ fontFamily: "'Zodiak', serif" }}>{savingsPct.toFixed(0)}%</div>
-                  <div className="text-[11px] opacity-50 text-[#F1EFE7] mb-5">vs Always-Premium</div>
+                  <div className="text-[10px] uppercase tracking-[0.2em] opacity-40 text-[#F1EFE7] mb-1">Total savings</div>
+                  <div className="text-6xl text-[#2CE8A5] mb-1" style={{ fontFamily: "'Zodiak', serif" }}>
+                    {savingsPct.toFixed(0)}%
+                  </div>
+                  <div className="text-[11px] opacity-40 text-[#F1EFE7] mb-5">vs Always-Premium</div>
                   <div className="border-t pt-4" style={{ borderColor: "#3E3E56" }}>
-                    <div className="text-[10px] uppercase tracking-[0.14em] opacity-50 text-[#F1EFE7] mb-2">Mishandled under Always-Cheap</div>
+                    <div className="text-[10px] uppercase tracking-[0.14em] opacity-40 text-[#F1EFE7] mb-2">
+                      Mishandled under Always-Cheap
+                    </div>
                     <div className="space-y-1.5 max-h-36 overflow-y-auto">
-                      {mishandled.length === 0
-                        ? <div className="text-[11px] opacity-40 text-[#F1EFE7]">None</div>
-                        : mishandled.map((t) => (
+                      {mishandled.length === 0 ? (
+                        <div className="text-[11px] opacity-40 text-[#F1EFE7]">None</div>
+                      ) : (
+                        mishandled.map((t) => (
                           <div key={t.ticket.id} className="border-l-2 border-[#FF6FCF] pl-2 text-[11px] text-[#F1EFE7]">
-                            <span className="opacity-50">#{t.ticket.id}</span>{" "}
-                            <span className="text-[#FF6FCF]">{t.policy.decision === "human_review" ? "Human" : "Premium"} required</span>
+                            <span className="opacity-40">#{t.ticket.id}</span>{" "}
+                            <span className="text-[#FF6FCF]">
+                              {t.policy.decision === "human_review" ? "Human" : "Premium"} required
+                            </span>
                           </div>
-                        ))}
+                        ))
+                      )}
                     </div>
                   </div>
                 </div>
