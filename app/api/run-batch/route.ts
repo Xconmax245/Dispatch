@@ -147,7 +147,10 @@ export async function POST(req: NextRequest) {
                 benchmarkCost: resData.evidence.benchmarkCost,
                 customerCharge: resData.evidence.customerCharge,
                 runtimeSaved: resData.evidence.saved,
-                requestId: resData.evidence.requestId
+                requestId: resData.evidence.requestId,
+                conversationLength: resData.evidence.conversationLength,
+                escalationTrend: resData.evidence.escalationTrend,
+                priorMessageCount: resData.evidence.priorMessageCount,
               },
               reply: resData.reply,
               policyMetrics: {

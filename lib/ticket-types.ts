@@ -48,6 +48,9 @@ export interface ProcessedTicket {
     customerCharge: number;
     runtimeSaved: number;
     requestId: string;
+    conversationLength?: number;
+    escalationTrend?: boolean;
+    priorMessageCount?: number;
   };
 
   reply?: string;

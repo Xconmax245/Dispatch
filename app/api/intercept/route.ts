@@ -6,6 +6,13 @@ import {
   MissingKeyError,
 } from "@/lib/runtime-client";
 import { decideTier, calculateShadowCosts } from "@/lib/policy";
+import {
+  getPriorContext,
+  appendMessage,
+  computeEscalationTrend,
+  getConversationLength,
+  getMessageFrequency,
+} from "@/lib/session-store";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -38,9 +45,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "GATEWAY_API_KEY is not set. Dispatch requires a live Runtime connection." }, { status: 500 });
     }
 
-    // 1. Triage
-    const { scores, headers: triageHeaders } = await triageTicket(text);
-    
+    // ── Session context (only for named senders, not anonymous pastes) ───
+    const priorContext = getPriorContext(senderId);
+    const frequencySignal = getMessageFrequency(senderId);
+
+    // 1. Triage — context-aware when session exists, vanilla when senderId is "unknown"
+    const { scores, headers: triageHeaders } = await triageTicket(
+      text,
+      priorContext.map((m) => ({ text: m.text, tier: m.tier })),
+      frequencySignal
+    );
+
+    // Compute session metadata BEFORE appending this message
+    const conversationLength = getConversationLength(senderId);
+    const escalationTrend = computeEscalationTrend(senderId, scores.riskScore);
+
     // 2. Policy decision
     const policyOutput = decideTier(scores, { remaining: remainingCapital, ticketsLeft });
     const shadowCosts = calculateShadowCosts(scores);
@@ -57,6 +76,9 @@ export async function POST(req: NextRequest) {
       reply = execResult.reply;
     }
 
+    // 4. Append this message to the session AFTER scoring is complete
+    appendMessage(senderId, text, policyOutput.decision, scores.riskScore);
+
     // Build evidence object
     const evidence = {
       requestId: execHeaders?.requestId || triageHeaders.requestId,
@@ -72,6 +94,10 @@ export async function POST(req: NextRequest) {
       execCustomerCharge: execHeaders?.customerCharge,
       execBenchmarkCost: execHeaders?.benchmarkCost,
       execSaved: execHeaders?.saved,
+      // Conversation-awareness metadata
+      conversationLength: conversationLength + 1,
+      escalationTrend,
+      priorMessageCount: conversationLength,
     };
 
     return NextResponse.json({
@@ -116,7 +142,10 @@ export async function POST(req: NextRequest) {
           cacheTier: "none",
           benchmarkCost: shadowCosts.shadowCostAlwaysStrong,
           customerCharge: 0,
-          saved: shadowCosts.shadowCostAlwaysStrong
+          saved: shadowCosts.shadowCostAlwaysStrong,
+          conversationLength: 1,
+          escalationTrend: false,
+          priorMessageCount: 0,
         },
         shadowCosts,
         actualSpend: 0

@@ -109,7 +109,7 @@ async function btlFetch(
 // Encodes explicit "uncertain → escalate" bias — false positives are cheaper
 // than false negatives in a customer support triage system.
 
-const TRIAGE_PROMPT = `You are a customer support triage classifier for a streetwear e-commerce brand.
+const TRIAGE_PROMPT_BASE = `You are a customer support triage classifier for a streetwear e-commerce brand.
 
 Given a customer message, return ONLY a valid JSON object with exactly these seven fields:
 {
@@ -139,18 +139,60 @@ riskScore — score by CONSEQUENCES if mishandled, not by tone:
 
 Reply with ONLY the JSON object. No markdown. No explanation. No prose. No code fences.`;
 
+export interface SessionContextMessage {
+  text: string;
+  tier: string;
+}
+
+/**
+ * Builds the triage system prompt.
+ * When sessionContext is provided, wraps the message in a conversation-aware
+ * frame that instructs the model to weigh escalation pattern, not just the
+ * current message in isolation.
+ */
+function buildTriagePrompt(
+  sessionContext: SessionContextMessage[],
+  frequencySignal: number
+): string {
+  if (sessionContext.length === 0) {
+    // First message from this sender — behave exactly as before.
+    return TRIAGE_PROMPT_BASE;
+  }
+
+  const contextLines = sessionContext
+    .map((m, i) => `${i + 1}. [${m.tier.toUpperCase()}] "${m.text}"`)
+    .join("\n");
+
+  const frequencyNote =
+    frequencySignal >= 3
+      ? `\nIMPORTANT: This sender has sent ${frequencySignal} messages in the last 10 minutes. Rapid repeat contact is itself an urgency signal — weight it toward higher risk and complexity.`
+      : "";
+
+  return `You are scoring a NEW message in an ongoing conversation.
+
+Prior messages from this same customer, most recent last (tier shows how each was previously routed):
+${contextLines}${frequencyNote}
+
+Score the NEW message, but weigh escalating tone and frequency across the conversation. A single terse complaint after two ignored follow-ups is higher risk than the same words as a first-contact message — frustration that has been building and went unaddressed deserves more weight than a fresh first-contact complaint. A calm but repeated pattern over multiple messages is often more serious than a loud but isolated first message.
+
+${TRIAGE_PROMPT_BASE}`;
+}
+
 // ─── Triage ───────────────────────────────────────────────────────────────────
 
 export async function triageTicket(
-  ticketText: string
+  ticketText: string,
+  sessionContext: SessionContextMessage[] = [],
+  frequencySignal = 0
 ): Promise<{ scores: TriageResult; headers: RuntimeHeaders }> {
+  const systemPrompt = buildTriagePrompt(sessionContext, frequencySignal);
   const { data, headers } = await btlFetch("/chat/completions", {
     model: "btl-2",
     messages: [
-      { role: "system", content: TRIAGE_PROMPT },
+      { role: "system", content: systemPrompt },
       { role: "user",   content: ticketText },
     ],
-    max_tokens: 120,
+    max_tokens: 160,
     temperature: 0.1,
   });
 

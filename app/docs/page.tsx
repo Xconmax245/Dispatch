@@ -426,6 +426,7 @@ bot.on("message", async (msg) => {
               ["No multi-bot management", "The Telegram integration is a single bot with hardcoded environment variables. Managing multiple bots, channels, or accounts is out of scope."],
               ["Fixed budget",            "The $0.30 starting capital is hardcoded. There is no per-user budget management, quota enforcement, or billing integration."],
               ["btl-2 only",              "All inference calls go through BTL Runtime's btl-2 router. Model selection within tiers is not exposed."],
+              ["Session-scoped memory",   "Conversation context memory is kept strictly in-memory per senderId. It does not persist across server restarts (this is intentional, keeping the design database-free and lightweight)."],
             ].map(([title, desc]) => (
               <div key={title} className="flex gap-4 text-xs border-b border-[#D8D5C9] pb-3 last:border-0">
                 <span className="font-bold w-36 flex-shrink-0">{title}</span>

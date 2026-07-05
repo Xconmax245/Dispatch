@@ -130,7 +130,7 @@ function ClassificationChip({ badge }: { badge: string }) {
 
 // ─── Tier chip ────────────────────────────────────────────────────────────────
 
-function TierChip({ decision }: { decision: string }) {
+function TierChip({ decision, escalating }: { decision: string; escalating?: boolean }) {
   const isHuman   = decision === "human_review";
   const isEconomy = decision === "economy";
 
@@ -147,6 +147,11 @@ function TierChip({ decision }: { decision: string }) {
     >
       <span className="opacity-70">{icon}</span>
       {label}
+      {escalating && (
+        <span className="ml-1 text-[10px]" title="Risk escalating across this conversation">
+          ↑
+        </span>
+      )}
     </span>
   );
 }
@@ -257,7 +262,17 @@ function TicketCard({ t }: { t: ProcessedTicket }) {
       {/* Chips row — 2px radius square chips only */}
       <div className="flex items-center gap-2 flex-wrap">
         <ClassificationChip badge={t.classification.classificationBadge} />
-        <TierChip decision={t.policy.decision} />
+        <TierChip decision={t.policy.decision} escalating={t.runtime?.escalationTrend} />
+        {/* Thread position indicator */}
+        {t.runtime?.conversationLength && t.runtime.conversationLength > 1 && (
+          <span
+            className="inline-flex items-center gap-1 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.14em] border border-[#6E6E90]/30 bg-[#6E6E90]/10 text-[#D8D5C9]"
+            style={{ borderRadius: "2px" }}
+            title={`Message ${t.runtime.conversationLength} in this sender's session`}
+          >
+            <span className="opacity-60">◎</span> msg {t.runtime.conversationLength}
+          </span>
+        )}
         <span className="ml-auto text-[9px] opacity-20 text-[#F1EFE7] uppercase tracking-wide font-mono">
           #{t.ticket.id}
         </span>
@@ -326,6 +341,64 @@ function TicketCard({ t }: { t: ProcessedTicket }) {
       {/* Runtime evidence — receipt style, no surrounding box */}
       <EvidenceCard runtime={t.runtime} />
     </motion.div>
+  );
+}
+
+// ─── Threaded ledger ──────────────────────────────────────────────────────────
+// Groups tickets by senderId. Anonymous tickets (senderId "unknown") display
+// as a flat grid. Named senders with 2+ messages get a thread connector.
+
+function ThreadedLedger({ ledger }: { ledger: ProcessedTicket[] }) {
+  // Thread = any ticket where the sender had prior messages (conversationLength > 1).
+  // In paste-mode all senders are "unknown" so conversationLength stays 1 — flat grid.
+  // In Telegram-mode real senderIds accumulate, so later messages get conversationLength > 1.
+  const threadTickets = ledger.filter(
+    (t) => t.runtime?.conversationLength && t.runtime.conversationLength > 1
+  );
+  const soloTickets = ledger.filter(
+    (t) => !t.runtime?.conversationLength || t.runtime.conversationLength <= 1
+  );
+
+  // Pure solo run — flat grid, no overhead
+  if (threadTickets.length === 0) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {ledger.map((t, i) => <TicketCard key={i} t={t} />)}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-10">
+      {threadTickets.length > 0 && (
+        <div>
+          <div className="text-[9px] uppercase tracking-[0.22em] opacity-40 text-[#F1EFE7] mb-4 flex items-center gap-3">
+            <span>◎ Multi-message threads</span>
+            <div className="flex-1 h-px bg-[#3E3E56]" />
+          </div>
+          <div className="relative pl-4 border-l-2 border-[#6E6E90]/40 space-y-4">
+            {threadTickets.map((t, i) => (
+              <div key={i} className="relative">
+                <div className="absolute -left-[21px] top-6 w-3 h-3 border-2 border-[#6E6E90] bg-[#2C2C40]" style={{ borderRadius: "1px" }} />
+                <TicketCard t={t} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {soloTickets.length > 0 && (
+        <div>
+          <div className="text-[9px] uppercase tracking-[0.22em] opacity-40 text-[#F1EFE7] mb-4 flex items-center gap-3">
+            <span>· Single messages</span>
+            <div className="flex-1 h-px bg-[#3E3E56]" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {soloTickets.map((t, i) => <TicketCard key={i} t={t} />)}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -551,9 +624,7 @@ export default function DispatchApp() {
                 Streaming…
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {ledger.map((t, i) => <TicketCard key={i} t={t} />)}
-              </div>
+              <ThreadedLedger ledger={ledger} />
             )}
 
             {phase === "done" && (
