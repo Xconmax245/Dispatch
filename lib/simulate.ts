@@ -103,10 +103,14 @@ export function simulate(
       reason = decision.reason;
     }
 
+    const originalTier = ticket.originalDecision as SimTier | undefined;
+
     const cost =
-      tier === 'precision' ? ticket.shadowCostAlwaysStrong
-      : tier === 'economy'  ? ticket.shadowCostAlwaysCheap
-      : 0;
+      (tier === originalTier && ticket.actualSpend !== undefined)
+        ? ticket.actualSpend
+        : (tier === 'precision' ? ticket.shadowCostAlwaysStrong
+           : tier === 'economy'  ? ticket.shadowCostAlwaysCheap
+           : 0);
 
     remaining    -= cost;
     totalSpent   += cost;
@@ -115,7 +119,6 @@ export function simulate(
 
     counts[tier] += 1;
 
-    const originalTier = ticket.originalDecision as SimTier | undefined;
     outcomes.push({
       ticketId: ticket.id,
       text: ticket.text,

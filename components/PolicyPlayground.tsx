@@ -56,7 +56,7 @@ export function PolicyPlayground({ tickets }: { tickets: ScoredTicket[] }) {
         <Slider
           label="Escalation Threshold"
           value={highThreshold}
-          min={0.30} max={0.95} step={0.05}
+          min={0.00} max={0.95} step={0.05}
           format={(v) => v.toFixed(2)}
           onChange={setHighThreshold}
           hint="Higher → stingier with Precision. Only extreme risk goes Premium."
@@ -64,7 +64,7 @@ export function PolicyPlayground({ tickets }: { tickets: ScoredTicket[] }) {
         <Slider
           label="Economy Floor"
           value={lowThreshold}
-          min={0.10} max={0.60} step={0.05}
+          min={0.00} max={1.00} step={0.05}
           format={(v) => v.toFixed(2)}
           onChange={setLowThreshold}
           hint="Lower → more generous with Economy. More queries to cheap model."
