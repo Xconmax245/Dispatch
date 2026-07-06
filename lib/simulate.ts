@@ -1,3 +1,7 @@
+// lib/simulate.ts
+// Pure client-side what-if simulation. No API calls.
+// Replays decideTier() against already-scored tickets under hypothetical settings.
+
 import { decideTier } from './policy';
 
 export interface ScoredTicket {
@@ -11,26 +15,40 @@ export interface ScoredTicket {
   shadowCostAlwaysCheap: number;
   classification?: string;
   dominantFactor?: string;
+  // from the actual live run — for diff display
+  originalDecision?: 'economy' | 'precision' | 'human_review';
+  actualSpend?: number;
 }
 
 export interface SimulationParams {
   startingBudget: number;
-  highThreshold: number;    // urgency threshold to trigger 'strong' (precision)
-  lowThreshold: number;     // urgency threshold below which 'cheap' (economy) applies
-  criticalFloor: number;    // remaining/ticketsLeft ratio that forces human_review
+  highThreshold: number;
+  lowThreshold: number;
+  criticalFloor: number;
+}
+
+export type SimTier = 'economy' | 'precision' | 'human_review';
+
+export interface TicketOutcome {
+  ticketId: string;
+  text: string;
+  tier: SimTier;
+  originalTier?: SimTier;
+  cost: number;
+  reason: string;
+  changed: boolean;
 }
 
 export interface SimulationResult {
-  outcomes: Array<{
-    ticketId: string;
-    tier: 'cheap' | 'strong' | 'human_review';
-    reason: string;
-  }>;
+  outcomes: TicketOutcome[];
   totalSpent: number;
   remainingBudget: number;
-  counts: { cheap: number; strong: number; human_review: number };
+  counts: { economy: number; precision: number; human_review: number };
   savingsVsAlwaysStrong: number;
   savingsPercent: number;
+  // vs what actually happened in the live run
+  deltaVsActual: number;
+  actualRunTotal: number;
 }
 
 export function simulate(
@@ -38,63 +56,81 @@ export function simulate(
   params: SimulationParams
 ): SimulationResult {
   let remaining = params.startingBudget;
-  const outcomes: SimulationResult['outcomes'] = [];
-  const counts = { cheap: 0, strong: 0, human_review: 0 };
+  const outcomes: TicketOutcome[] = [];
+  const counts = { economy: 0, precision: 0, human_review: 0 };
   let totalSpent = 0;
   let totalAlwaysStrong = 0;
+  let actualRunTotal = 0;
 
-  tickets.forEach((ticket, index) => {
-    const ticketsLeft = tickets.length - index;
+  for (let i = 0; i < tickets.length; i++) {
+    const ticket = tickets[i];
+    const ticketsLeft = tickets.length - i;
 
-    // Reuse decideTier with the scoring properties
-    const decision = decideTier(
-      {
-        riskScore: ticket.riskScore,
-        complexity: ticket.complexity,
-        confidence: ticket.confidence,
-        businessValue: ticket.businessValue,
-        classification: ticket.classification || "Routine Inquiry",
-        dominantFactor: ticket.dominantFactor || "Simulation inquiry",
-        signals: [],
-      },
-      { remaining, ticketsLeft },
-      {
-        highThreshold: params.highThreshold,
-        lowThreshold: params.lowThreshold,
-        criticalFloor: params.criticalFloor,
-      }
-    );
+    // ── Hard floor: extreme risk is always Human Review ─────────────────────
+    // The urgency formula (risk × businessValue / confidence) can under-score
+    // extreme-risk tickets with low business value (e.g. legal threats from
+    // unknown customers). riskScore ≥ 0.85 or "Human Review" badge are
+    // unconditional — no slider changes this.
+    const isExtremeRisk =
+      ticket.riskScore >= 0.85 ||
+      (ticket.classification || '').toLowerCase().includes('human');
 
-    // Map tier name and cost based on decideTier output ("economy" | "precision" | "human_review")
+    let tier: SimTier;
+    let reason: string;
+
+    if (isExtremeRisk) {
+      tier = 'human_review';
+      reason = `riskScore ${ticket.riskScore.toFixed(2)} — unconditional human review floor`;
+    } else {
+      const decision = decideTier(
+        {
+          riskScore: ticket.riskScore,
+          complexity: ticket.complexity,
+          confidence: ticket.confidence,
+          businessValue: ticket.businessValue,
+          classification: ticket.classification || 'Routine Inquiry',
+          dominantFactor: ticket.dominantFactor || '',
+          signals: [],
+        },
+        { remaining, ticketsLeft },
+        {
+          highThreshold: params.highThreshold,
+          lowThreshold: params.lowThreshold,
+          criticalFloor: params.criticalFloor,
+        }
+      );
+      tier = decision.decision as SimTier;
+      reason = decision.reason;
+    }
+
     const cost =
-      decision.decision === 'precision'
-        ? ticket.shadowCostAlwaysStrong
-        : decision.decision === 'economy'
-        ? ticket.shadowCostAlwaysCheap
-        : 0;
+      tier === 'precision' ? ticket.shadowCostAlwaysStrong
+      : tier === 'economy'  ? ticket.shadowCostAlwaysCheap
+      : 0;
 
-    remaining -= cost;
-    totalSpent += cost;
+    remaining    -= cost;
+    totalSpent   += cost;
     totalAlwaysStrong += ticket.shadowCostAlwaysStrong;
+    actualRunTotal    += ticket.actualSpend ?? 0;
 
-    const mappedTier =
-      decision.decision === 'precision'
-        ? 'strong'
-        : decision.decision === 'economy'
-        ? 'cheap'
-        : 'human_review';
+    counts[tier] += 1;
 
-    counts[mappedTier] += 1;
-
+    const originalTier = ticket.originalDecision as SimTier | undefined;
     outcomes.push({
       ticketId: ticket.id,
-      tier: mappedTier,
-      reason: decision.reason,
+      text: ticket.text,
+      tier,
+      originalTier,
+      cost,
+      reason,
+      changed: !!originalTier && originalTier !== tier,
     });
-  });
+  }
 
   const savingsVsAlwaysStrong = totalAlwaysStrong - totalSpent;
-  const savingsPercent = totalAlwaysStrong > 0 ? (savingsVsAlwaysStrong / totalAlwaysStrong) * 100 : 0;
+  const savingsPercent =
+    totalAlwaysStrong > 0 ? (savingsVsAlwaysStrong / totalAlwaysStrong) * 100 : 0;
+  const deltaVsActual = actualRunTotal - totalSpent;
 
   return {
     outcomes,
@@ -103,5 +139,7 @@ export function simulate(
     counts,
     savingsVsAlwaysStrong,
     savingsPercent,
+    deltaVsActual,
+    actualRunTotal,
   };
 }
