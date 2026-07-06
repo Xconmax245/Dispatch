@@ -4,7 +4,7 @@ Dispatch is a production-ready, lightweight AI routing middleware built on top o
 
 Instead of routing every query to an expensive model, Dispatch routes routine questions to a fast, cheap model (Economy) and reserves high-stakes queries for a premium model (Precision). If a message exposes legal, security, or critical refund threats, Dispatch bypasses LLM inference entirely and routes it directly to a human agent queue (Human Review).
 
-Every decision is backed by live, raw BTL Runtime response headers (`x-btl-*`) showing actual micro-dollar costs, allowing you to track exactly what you spent versus what a naive "always premium" strategy would have cost.
+Every decision is backed by live, raw BTL Runtime response headers (`x-btl-*`) showing actual micro-dollar costs, allowing you to track exactly what you spent versus what a naive "always premium" strategy would have cost instead.
 
 ---
 
