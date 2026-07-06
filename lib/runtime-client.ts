@@ -60,9 +60,18 @@ function extractHeaders(headers: Headers): RuntimeHeaders {
   const benchmarkCost = parseFloat(headers.get("x-btl-benchmark-cost") ?? "0");
   const customerCharge = parseFloat(headers.get("x-btl-customer-charge") ?? "0");
 
+  const rawCacheTier = headers.get("x-btl-cache-tier");
+  const gatewaySavingsPct = parseFloat(headers.get("x-gateway-savings-pct") ?? "0");
+  let cacheTier = "none";
+  if (rawCacheTier) {
+    cacheTier = rawCacheTier;
+  } else if (gatewaySavingsPct > 0) {
+    cacheTier = `hit (${gatewaySavingsPct}%)`;
+  }
+
   return {
     requestId:     headers.get("x-btl-request-id")      ?? "",
-    cacheTier:     headers.get("x-btl-cache-tier")       ?? "none",
+    cacheTier,
     benchmarkCost,
     customerCharge,
     saved:         benchmarkCost - customerCharge,
@@ -187,7 +196,7 @@ export async function triageTicket(
 ): Promise<{ scores: TriageResult; headers: RuntimeHeaders }> {
   const systemPrompt = buildTriagePrompt(sessionContext, frequencySignal);
   const { data, headers } = await btlFetch("/chat/completions", {
-    model: "btl-2",
+    model: "gpt-4.1-mini",
     messages: [
       { role: "system", content: systemPrompt },
       { role: "user",   content: ticketText },

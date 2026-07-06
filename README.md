@@ -211,14 +211,22 @@ bot.on('message', async (msg) => {
 
 ---
 
-## 7. The Honesty Page: Live Pricing Reality
+## 7. The Honesty Page: Live Pricing Reality & Caching
 
 Unlike simulated dashboards, **Dispatch uses raw headers**. This reveals a real gateway pricing reality:
 
-> **Why `saved` is sometimes negative:**
-> BTL Runtime's pricing specifies that a workspace pays the benchmark price when optimized, split 50/50. However, on cold calls without cache hits, the gateway applies a retail markup above the raw wholesale provider cost (visible in the difference between `x-btl-customer-charge` and `x-btl-benchmark-cost`).
-> 
-> Dispatch does **not** clamp or hide negative savings. We compute `saved = benchmarkCost - customerCharge` and show it raw. Real savings are realized by the policy routing itself: directing 80-90% of messages to Economy instead of paying flat-rate Premium on every call.
+### Why `saved` is sometimes negative:
+BTL Runtime's pricing specifies that a workspace pays the benchmark price when optimized, split 50/50. However, on cold calls without cache hits, the gateway applies a retail markup above the raw wholesale provider cost (visible in the difference between `x-btl-customer-charge` and `x-btl-benchmark-cost`).
+
+Dispatch does **not** clamp or hide negative savings. We compute `saved = benchmarkCost - customerCharge` and show it raw. Real savings are realized by the policy routing itself: directing 80-90% of messages to Economy instead of paying flat-rate Premium on every call.
+
+### How to trigger Gateway Prompt Caching:
+We discovered that caching on the BTL gateway requires:
+1. **Shared-Savings Model**: Switch the triage model from BTL's own router (`btl-2`) to a direct model supporting shared savings (`gpt-4.1-mini`).
+2. **Enable Storing & Keys**: Set `"store": true` and `"metadata": { "prompt_cache_key": "dispatch-triage-v1" }` in the request body.
+3. **Prefix Ordering**: Maintain a static instructions system prompt first, and variable query message last.
+
+When caching hits, the BTL gateway splits the savings 50/50, lowering `customerCharge` by exactly 50% of `benchmarkCost` (`saved` is positive and equal to 50% of the benchmark). Dispatch detects this hit via the positive `x-gateway-savings-pct` header and marks the cache status as `hit (50%)`.
 
 ---
 

@@ -305,7 +305,7 @@ export default function DocsPage() {
               </div>
               {[
                 ["requestId",          "Unique identifier for the execution API call. Derived from BTL Runtime's response id."],
-                ["cacheTier",          "Cache status from BTL Runtime. \"none\" means no cache hit on this call."],
+                ["cacheTier",          "Cache status from BTL Runtime. \"none\" means no cache hit. \"hit (50%)\" indicates a prompt-cache hit on gpt-4.1-mini via the stable prompt_cache_key parameter."],
                 ["benchmarkCost",      "The x-btl-benchmark-cost header: wholesale provider cost before any markup."],
                 ["customerCharge",     "The x-btl-customer-charge header: what the workspace is actually billed."],
                 ["saved",              "benchmarkCost − customerCharge. Can be negative — see Pricing Reality below."],
@@ -425,7 +425,7 @@ bot.on("message", async (msg) => {
               ["No persistent database",  "Processed tickets exist only in the browser session. Closing the tab discards the ledger. There is no run history."],
               ["No multi-bot management", "The Telegram integration is a single bot with hardcoded environment variables. Managing multiple bots, channels, or accounts is out of scope."],
               ["Fixed budget",            "The $0.30 starting capital is hardcoded. There is no per-user budget management, quota enforcement, or billing integration."],
-              ["btl-2 only",              "All inference calls go through BTL Runtime's btl-2 router. Model selection within tiers is not exposed."],
+              ["Triage Caching",          "Triage scoring runs on gpt-4.1-mini with prompt_cache_key metadata to trigger BTL gateway prompt caching. Execution uses the btl-2 router."],
               ["Session-scoped memory",   "Conversation context memory is kept strictly in-memory per senderId. It does not persist across server restarts (this is intentional, keeping the design database-free and lightweight)."],
             ].map(([title, desc]) => (
               <div key={title} className="flex gap-4 text-xs border-b border-[#D8D5C9] pb-3 last:border-0">
