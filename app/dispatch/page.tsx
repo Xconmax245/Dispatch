@@ -434,8 +434,11 @@ function DispatchAppInner() {
       shadowCostAlwaysCheap: pt.policyMetrics.shadowCheapCost,
       classification: pt.classification.classificationBadge,
       dominantFactor: pt.classification.dominantFactor,
+      originalDecision: pt.policy.decision as 'economy' | 'precision' | 'human_review',
+      actualSpend: pt.policyMetrics.actualSpend,
     }));
   }, [ledger]);
+
 
   const hasStartedRef = useRef(false);
 
