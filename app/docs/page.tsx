@@ -254,7 +254,7 @@ export default function DocsPage() {
             <CodeBlock
               label="Request — curl"
               lang="bash"
-              code={`curl -X POST https://your-domain.com/api/intercept \\
+              code={`curl -X POST https://dispatch-btl.vercel.app/api/intercept \\
   -H "Content-Type: application/json" \\
   -d '{
     "text": "My order arrived with a broken zipper and I need a replacement or refund immediately.",
