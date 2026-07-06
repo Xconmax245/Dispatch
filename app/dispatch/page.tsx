@@ -7,6 +7,7 @@ import { CornerMarks } from "@/components/CornerMarks";
 import Link from "next/link";
 import type { ProcessedTicket } from "@/lib/ticket-types";
 import { PolicyPlayground } from "@/components/PolicyPlayground";
+import { CacheCompare } from "@/components/CacheCompare";
 
 const STARTING_CAPITAL = 0.3;
 
@@ -662,6 +663,11 @@ export default function DispatchApp() {
             )}
           </div>
         </div>
+
+        {/* Cache Compare — cold vs warm proof panel */}
+        {phase === "done" && (
+          <CacheCompare ledger={ledger} />
+        )}
 
         {/* Benchmark */}
         {phase === "done" && (
