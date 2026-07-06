@@ -304,11 +304,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-8 relative z-10">
           <div className="md:col-span-5 flex flex-col justify-between">
             <div>
-              <div className="flex items-center gap-3 mb-8">
-                <div className="w-8 h-8 border-2 border-[#2CE8A5] flex items-center justify-center relative group cursor-pointer">
-                  <div className="w-3 h-3 bg-[#2CE8A5] group-hover:scale-150 transition-transform duration-300" />
-                  <div className="absolute inset-0 bg-[#2CE8A5] opacity-0 group-hover:opacity-20 transition-opacity blur-md" />
-                </div>
+              <div className="flex items-center mb-8">
                 <div className="text-2xl font-bold uppercase tracking-[0.25em]" style={{ color: "#F1EFE7" }}>Dispatch</div>
               </div>
               <p className="text-xs opacity-60 leading-relaxed max-w-sm mb-8 font-mono">
