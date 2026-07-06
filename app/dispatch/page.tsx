@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { CornerMarks } from "@/components/CornerMarks";
 import Link from "next/link";
 import type { ProcessedTicket } from "@/lib/ticket-types";
+import { PolicyPlayground } from "@/components/PolicyPlayground";
 
 const STARTING_CAPITAL = 0.3;
 
@@ -416,6 +417,22 @@ export default function DispatchApp() {
   const [ledger, setLedger]               = useState<ProcessedTicket[]>([]);
   const [processed, setProcessed]         = useState(0);
   const [totalTickets, setTotalTickets]   = useState(0);
+  const [showPlayground, setShowPlayground] = useState(false);
+
+  const scoredTickets = React.useMemo(() => {
+    return ledger.map((pt) => ({
+      id: pt.ticket.id,
+      text: pt.ticket.text,
+      riskScore: pt.classification.riskScore,
+      complexity: pt.classification.complexity,
+      confidence: pt.classification.confidence,
+      businessValue: pt.classification.businessValue,
+      shadowCostAlwaysStrong: pt.policyMetrics.shadowPremiumCost,
+      shadowCostAlwaysCheap: pt.policyMetrics.shadowCheapCost,
+      classification: pt.classification.classificationBadge,
+      dominantFactor: pt.classification.dominantFactor,
+    }));
+  }, [ledger]);
 
   const hasStartedRef = useRef(false);
 
@@ -715,6 +732,24 @@ export default function DispatchApp() {
                   </div>
                 </div>
               </div>
+
+              {/* Try different settings toggle */}
+              <div className="text-center mt-12">
+                <button
+                  onClick={() => setShowPlayground(!showPlayground)}
+                  className="inline-block px-10 py-3.5 text-[11px] font-bold uppercase tracking-[0.16em] hover:opacity-90 transition-opacity active:scale-95 border border-[#3E3E56] text-[#F1EFE7]"
+                  style={{ backgroundColor: showPlayground ? "#3E3E56" : "transparent" }}
+                >
+                  {showPlayground ? "Hide Playground Settings ↑" : "Try different policy settings →"}
+                </button>
+              </div>
+
+              {/* Conditionally rendered Playground component */}
+              {showPlayground && (
+                <div className="mt-8 pt-4 border-t border-[#3E3E56]/40">
+                  <PolicyPlayground tickets={scoredTickets} />
+                </div>
+              )}
             </div>
           </div>
         )}

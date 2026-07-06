@@ -29,7 +29,11 @@ export function scoreToUrgency(scores: TriageResult): number {
   return (riskScore * businessValue) / Math.max(confidence, 0.2);
 }
 
-export function decideTier(scores: TriageResult, budgetState: BudgetState): PolicyOutput {
+export function decideTier(
+  scores: TriageResult,
+  budgetState: BudgetState,
+  params: { highThreshold?: number; lowThreshold?: number; criticalFloor?: number } = {}
+): PolicyOutput {
   const { complexity, classification, dominantFactor } = scores;
   const { remaining, ticketsLeft } = budgetState;
 
@@ -37,9 +41,9 @@ export function decideTier(scores: TriageResult, budgetState: BudgetState): Poli
   const capitalPerTicket = ticketsLeft > 0 ? remaining / ticketsLeft : 0;
 
   const isBudgetStrained = capitalPerTicket < 0.15;
-  const CRITICAL_FLOOR   = 0.03;
-  const HIGH_THRESHOLD   = isBudgetStrained ? 0.8 : 0.6;
-  const LOW_THRESHOLD    = 0.3;
+  const CRITICAL_FLOOR   = params.criticalFloor ?? 0.03;
+  const HIGH_THRESHOLD   = params.highThreshold ?? (isBudgetStrained ? 0.8 : 0.6);
+  const LOW_THRESHOLD    = params.lowThreshold ?? 0.3;
   const CONFIDENCE_FLOOR = 0.4;
   const COMPLEXITY_FLOOR = 0.4;
 
