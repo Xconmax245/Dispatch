@@ -105,6 +105,28 @@ export default function RunPage() {
             Run Dispatch →
           </button>
 
+          {/* Demo entry */}
+          <div
+            className="mt-8 border px-6 py-5 flex items-center justify-between gap-6"
+            style={{ borderColor: "#D8D5C9", backgroundColor: "#EDEBE3" }}
+          >
+            <div>
+              <div className="text-[9px] uppercase tracking-[0.22em] mb-1 opacity-50" style={{ color: "#26263A" }}>
+                No API key?
+              </div>
+              <div className="text-xs leading-relaxed opacity-70" style={{ color: "#26263A" }}>
+                Run a pre-recorded demo — all five routing tiers, a real cache hit, and an escalating thread. No setup required.
+              </div>
+            </div>
+            <a
+              href="/dispatch?demo=true"
+              className="flex-shrink-0 px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.16em] border hover:opacity-80 transition-opacity whitespace-nowrap"
+              style={{ borderColor: "#26263A", color: "#26263A", backgroundColor: "transparent" }}
+            >
+              Try Demo →
+            </a>
+          </div>
+
           {/* Cross-link to Telegram bot */}
           <div className="text-center mt-5 text-[10px] uppercase tracking-[0.18em] opacity-50" style={{ color: "#26263A" }}>
             Or send a test message to our Telegram bot instead{" "}
@@ -124,6 +146,7 @@ export default function RunPage() {
               ← Back to landing page
             </Link>
           </div>
+
         </div>
       </div>
     </div>
