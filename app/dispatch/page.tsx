@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useEffect, useRef, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { CornerMarks } from "@/components/CornerMarks";
 import Link from "next/link";
@@ -408,8 +408,10 @@ function ThreadedLedger({ ledger }: { ledger: ProcessedTicket[] }) {
 
 type Phase = "init" | "parsing" | "running" | "done" | "error";
 
-export default function DispatchApp() {
+function DispatchAppInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isDemo = searchParams.get("demo") === "true";
   const [phase, setPhase] = useState<Phase>("init");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -441,23 +443,31 @@ export default function DispatchApp() {
     if (hasStartedRef.current) return;
     hasStartedRef.current = true;
 
-    const rawText = sessionStorage.getItem("dispatch_input");
+    const rawText = isDemo ? "" : (sessionStorage.getItem("dispatch_input") ?? "");
 
-    if (!rawText || rawText.trim().length === 0) {
-      router.replace("/run");
-      return;
+    if (!isDemo) {
+      if (!rawText || rawText.trim().length === 0) {
+        router.replace("/run");
+        return;
+      }
+      sessionStorage.removeItem("dispatch_input");
     }
-
-    sessionStorage.removeItem("dispatch_input");
     setPhase("parsing");
 
     const runStream = async () => {
       try {
-        const res = await fetch("/api/run-batch", {
-          method: "POST",
-          body: JSON.stringify({ startingCapital: STARTING_CAPITAL, rawText }),
-          headers: { "Content-Type": "application/json" },
-        });
+        // Demo mode: stream from fixture endpoint, no API key needed
+        const endpoint = isDemo ? "/api/demo-batch" : "/api/run-batch";
+        const fetchOptions = isDemo
+          ? { method: "GET" }
+          : {
+              method: "POST",
+              body: JSON.stringify({ startingCapital: STARTING_CAPITAL, rawText }),
+              headers: { "Content-Type": "application/json" },
+            };
+
+        const res = await fetch(endpoint, fetchOptions);
+
 
         if (!res.body) { setPhase("error"); return; }
         const reader = res.body.getReader();
@@ -505,7 +515,7 @@ export default function DispatchApp() {
     };
 
     runStream();
-  }, [router, totalTickets]);
+  }, [router, totalTickets, isDemo]);
 
   const actualSpend = ledger.reduce((s, t) => s + t.policyMetrics.actualSpend, 0);
   const totalStrong = ledger.reduce((s, t) => s + t.policyMetrics.shadowPremiumCost, 0);
@@ -586,6 +596,19 @@ export default function DispatchApp() {
             ? `Processing · $${remaining.toFixed(3)} remaining · ${totalTickets - processed} left`
             : `Complete · $${actualSpend.toFixed(3)} spent · ${savingsPct.toFixed(0)}% saved vs always-premium`}
         </div>
+
+        {/* Demo mode notice */}
+        {isDemo && (
+          <div
+            className="w-full text-center py-1.5 text-[9px] uppercase tracking-[0.2em] font-bold border-b"
+            style={{ borderColor: "#3E3E56", backgroundColor: "rgba(44,232,165,0.06)", color: "#2CE8A5" }}
+          >
+            Demo mode — pre-recorded fixture data · no API key used ·{" "}
+            <a href="/run" className="underline opacity-60 hover:opacity-100 transition-opacity">
+              run with your own messages →
+            </a>
+          </div>
+        )}
 
         {/* Live data notice */}
         <div
@@ -763,3 +786,16 @@ export default function DispatchApp() {
     </div>
   );
 }
+
+export default function DispatchApp() {
+  return (
+    <Suspense fallback={
+      <div className="flex-1 flex items-center justify-center min-h-screen" style={{ backgroundColor: "#2C2C40" }}>
+        <div className="text-[11px] uppercase tracking-[0.18em] opacity-30 text-[#F1EFE7]">Loading…</div>
+      </div>
+    }>
+      <DispatchAppInner />
+    </Suspense>
+  );
+}
+
